@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "text": "用户",
+      "icon": "&#xe620;",
+      "subset": [
+        {
+          "text": "用户资料",
+          "icon": "&#xe621;",
+          "href": "cms/user.html"
+        }
+      ]
+    }
+  ]
+}

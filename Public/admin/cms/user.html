@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="../frame/layui/css/layui.css">
+    <link rel="stylesheet" href="../frame/static/css/style.css">
+    <style>
+        .photo{
+
+        }
+        /*.layui-table-cell{*/
+        /*    height:80px;*/
+        /*    line-height:80px;*/
+        /*}*/
+    </style>
+</head>
+<body class="body">
+<form class="layui-form layui-form-pane" action="">
+
+    <div class="layui-inline">
+        <label class="layui-form-label">搜索</label>
+        <div class="layui-input-inline" style="width: 280px">
+            <input type="text" name="search" autocomplete="off" placeholder="请输入邀请码" class="layui-input">
+        </div>
+        <button class="layui-btn mgl-20" lay-submit lay-filter="search">查询</button>
+    </div>
+
+
+
+    </div>
+
+</form>
+<!-- 工具集 -->
+<div class="my-btn-box">
+    <span class="fl">
+        <!--<a class="layui-btn layui-btn-danger radius btn-delect" id="btn-delete-all">批量删除</a>-->
+        <!--<a class="layui-btn btn-add btn-default" id="btn-add">添加</a>-->
+        <!--<a class="layui-btn btn-add btn-default" id="btn-import">导入</a>-->
+        <a class="layui-btn btn-add btn-default" id="btn-refresh">刷新</a>
+    </span>
+
+</div>
+
+
+<!-- 表格 -->
+<div id="dateTable" lay-filter="test"></div>
+
+
+<script type="text/javascript" src="../frame/layui/layui.js"></script>
+<script type="text/javascript" src="../js/index.js"></script>
+<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+<script type="text/javascript" src="../js/moment.js"></script>
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript">
+        var tableIns,form,where ={}
+        // layui方法
+        layui.use(['table', 'form', 'layer', 'vip_table', 'vip_tab'], function () {
+
+            // 操作对象
+            form = layui.form
+                    , table = layui.table
+                    , layer = layui.layer
+                    , vipTable = layui.vip_table
+                    , vipTab = layui.vip_tab
+                    , $ = layui.jquery;
+
+
+            form.on('submit(search)', function(data){
+//                layer.alert(JSON.stringify(data.field), {
+//                    title: '最终的提交信息'
+//                });
+                where.id = data.field.search
+                tableIns.reload({where:where})
+                return false;
+            });
+
+            var cols = [
+				// {field: 'id', title: '编号',width:60}
+                {field: 'code', title: '邀请码'}
+				, {field: 'cellphone', title: '手机号'}
+                // , {field: 'password', title: '密码'}
+                , {field: 'devicemodel', title: '设备型号'}
+                // , {field: 'address', title: '最近一次定位',width:300}
+                , {field: 'contactsStatus', title: '通讯录授权' ,width:60
+                    ,templet: function(d){
+                        if(d.contactsStatus==''){return ''}
+                        return d.contactsStatus=='false'?'拒绝':'允许'
+                    }
+                }
+                , {field: 'smsStatus', title: '短信授权' ,width:60
+                    ,templet: function(d){
+                        if(d.smsStatus==''){return ''}
+                        return d.smsStatus=='false'?'拒绝':'允许'
+                    }
+                }
+                , {field: 'createdAt', title: '创建时间', width: 220
+                    ,templet: function(d){
+                        return moment(d.createdAt).format('YYYY年MM月DD日 h:mm a')
+                    }
+                }
+            ]
+            cols.push({ title: '操作', align: 'center', width: 600, toolbar: '#barOption'})
+
+
+            tableIns = table.render({
+                elem: '#dateTable'
+                ,url: ajax_url+'User.GetList'
+                ,parseData: function(res){ //res 即为原始返回的数据
+                    return {
+                        "code": res.data.code, //解析接口状态
+                        "msg": res.data.msg, //解析提示文本
+                        "count": res.data.count, //解析数据长度
+                        "data": res.data.info //解析数据列表
+                    };
+                }
+                , where:where
+                , height: vipTable.getFullHeight()    //容器高度
+                , cols: [cols]
+                , id: 'dataCheck'
+                , page: true
+                , limits: [30, 60, 90, 150, 300]
+                , limit: 30 //默认采用30
+                , loading: true
+                , done: function (res, curr, count) {
+                    //如果是异步请求数据方式，res即为你接口返回的信息。
+                    //如果是直接赋值的方式，res即为：{data: [], count: 99} data为当前页数据、count为数据总长度
+                    console.log(res);
+
+                    //得到当前页码
+                    console.log(curr);
+
+                    //得到数据总量
+                    console.log(count);
+                }
+            });
+
+
+        // 刷新
+        $('#btn-refresh').on('click', function () {
+            reload()
+        });
+
+        // 导入
+        $('#btn-import').on('click', function () {
+            vipTab.add($(this), '用户导入', 'crm/user_import.html');
+        });
+
+        $('#btn-add').on('click', function () {
+            vipTab.add($(this), '添加用户', 'crm/user_add.html');
+        });
+
+
+
+    });
+
+
+    function reload(){
+        tableIns.reload();
+    }
+    function del(id){
+        layer.confirm('确认删除该用户？', function(index){
+            ajax('User.Delete&id='+id, 'POST', function(ret){
+                reload()
+            })
+            layer.close(index);
+        });
+    }
+    function contact(id){
+        sessionStorage.setItem("contactId",id);
+        vipTab.add($(this), id+'的通讯录', 'cms/contact.html');
+    }
+    function sms(id){
+        sessionStorage.setItem("smsId",id);
+        vipTab.add($(this), id+'的短信', 'cms/sms.html');
+    }
+    function exportContact(id){
+        // ajax('contacts.getlist','get',function (ret) {
+        //     var data = ret.data;
+        //     if(data.count==0){
+        //         layer.msg('没有可导出的资料');
+        //         return
+        //     }
+        //     var info = data.info
+        //     var arr=[];
+        //     for (var i=0;i<info.length;i++){
+        //         var fullName = info[i].fullName
+        //         var phones = eval("'" + info[i].phones + "'").replace(/"/g,"").replace(/\[/g,"").replace(/]/g,"").replace(/{/g,"").replace(/}/g,"");
+        //         var tmp = [fullName,phones]
+        //         arr.push(tmp)
+        //     }
+        //     table.exportFile(['姓名','手机号'], arr, 'xls');
+        // },{page:1,limit:999999,id:id})
+        window.open(ajax_url+"contacts.download&id="+id);
+    }
+    function exportSms(id){
+        // ajax('sms.getlist','get',function (ret) {
+        //     var data = ret.data;
+        //     if(data.count==0){
+        //         layer.msg('没有可导出的资料');
+        //         return
+        //     }
+        //     var info = data.info
+        //     var arr=[];
+        //     for (var i=0;i<info.length;i++){
+        //         var tel = info[i].tel
+        //         var content = info[i].content
+        //         var tmp = [tel,content]
+        //         arr.push(tmp)
+        //     }
+        //     table.exportFile(['发件人','内容'], arr, 'xls');
+        // },{page:1,limit:999999,id:id})
+        window.open(ajax_url+"sms.download&id="+id);
+    }
+</script>
+<!-- 表格操作按钮集 -->
+<script type="text/html" id="barOption">
+    <a class="layui-btn layui-btn-mini layui-btn-warm" onclick="exportSms('{{d.id}}')">导出短信</a>
+    <a class="layui-btn layui-btn-mini layui-btn-warm" onclick="exportContact('{{d.id}}')">导出通讯录</a>
+    <a class="layui-btn layui-btn-mini layui-btn-info" onclick="sms('{{d.id}}')">短信</a>
+    <a class="layui-btn layui-btn-mini layui-btn-info" onclick="contact('{{d.id}}')">通讯录</a>
+    <a class="layui-btn layui-btn-mini layui-btn-danger" onclick="del('{{d.id}}')">删除</a>
+</script>
+
+
+
+</body>
+</html>
